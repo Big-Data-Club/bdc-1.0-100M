@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Data / model artifacts
+artifacts/*
+!artifacts/.gitkeep
+data/*.bin
+data/*.json
+outputs/*
+!outputs/.gitkeep
+
+# Training logs / trackers
+wandb/
+*.log
+logs/*
+!logs/.gitkeep
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Apptainer images / build artifacts
+images/*.sif
+images/*.img
+images/*.sqsh
+apptainer/*.sif
+apptainer/*.img
+apptainer/sandbox/
