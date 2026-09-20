@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bdc-1.0-100M"
+version = "1.0.0"
+description = "A clean, research-oriented repository for pretraining a ~100M parameter decoder-only language model from scratch."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "Apache-2.0" }
+authors = [{ name = "BDC-1.0-100M contributors" }]
+dependencies = [
+  "torch>=2.4",
+  "numpy>=1.26",
+  "pyyaml>=6.0",
+  "datasets>=3.0",
+  "tokenizers>=0.20",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.7",
+]
+tracking = [
+  "wandb>=0.18",
+]
+
+[project.scripts]
+bdc-train = "bdc100m.train:main"
+bdc-eval = "bdc100m.evaluate:main"
+bdc-generate = "bdc100m.generate:main"
+bdc-inspect = "bdc100m.inspect_model:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bdc100m"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

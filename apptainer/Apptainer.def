@@ -1,0 +1,75 @@
+Bootstrap: docker
+From: {{ BASE_IMAGE }}
+
+%arguments
+    BASE_IMAGE=pytorch/pytorch:2.4.1-cuda12.4-cudnn9-runtime
+
+%labels
+    org.opencontainers.image.title BDC-1.0-100M
+    org.opencontainers.image.version 1.0.0
+    org.opencontainers.image.description "Runtime image for training the BDC-1.0-100M language model"
+    org.opencontainers.image.source "BDC-1.0-100M repository"
+    org.opencontainers.image.base.name {{ BASE_IMAGE }}
+
+%files
+    pyproject.toml /opt/bdc/pyproject.toml
+    README.md /opt/bdc/README.md
+    LICENSE /opt/bdc/LICENSE
+    configs /opt/bdc/configs
+    src /opt/bdc/src
+
+%post
+    set -eux
+
+    # Keep the CUDA-enabled PyTorch shipped by the base image. Installing the
+    # project with --no-deps prevents pip from replacing it with another wheel.
+    python -m pip install --no-cache-dir --upgrade "pip<26" "hatchling>=1.25"
+    python -m pip install --no-cache-dir \
+        "numpy>=1.26,<3" \
+        "pyyaml>=6.0,<7" \
+        "datasets>=3.0,<5" \
+        "tokenizers>=0.20,<1" \
+        "tqdm>=4.66,<5"
+    python -m pip install --no-cache-dir --no-deps --no-build-isolation /opt/bdc
+
+    mkdir -p /workspace /data /outputs /checkpoints
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export TOKENIZERS_PARALLELISM=false
+    export HF_HOME=/tmp/huggingface
+
+%runscript
+    if [ "$#" -eq 0 ]; then
+        echo "BDC-1.0-100M container"
+        echo "Example: apptainer run --nv <image.sif> bdc-train --config /workspace/configs/bdc_1_0_100m.yaml"
+        exit 0
+    fi
+    exec "$@"
+
+%test
+    python - <<'PY'
+import torch
+import bdc100m
+from bdc100m.config import load_config
+from bdc100m.model import BDCModel
+
+cfg = load_config('/opt/bdc/configs/bdc_1_0_100m.yaml')
+model = BDCModel(cfg.model)
+params = sum(p.numel() for p in model.parameters())
+assert params == 100_092_672, params
+print('BDC-1.0-100M container test: OK')
+print('torch:', torch.__version__)
+print('parameters:', params)
+PY
+
+%help
+    BDC-1.0-100M Apptainer image.
+
+    GPU execution:
+      apptainer exec --nv bdc-1.0-100M.sif python -c \
+        "import torch; print(torch.cuda.is_available())"
+
+    Train with a bound repository/data directory:
+      apptainer exec --nv --bind "$PWD:/workspace" bdc-1.0-100M.sif \
+        bash -lc 'cd /workspace && bdc-train --config configs/bdc_1_0_100m.yaml'
